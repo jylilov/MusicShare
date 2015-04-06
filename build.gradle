@@ -8,15 +8,32 @@ repositories {
 
 ext {
     springVersion = '4.1.6.RELEASE'
-    servletApiVersion = '3.1.0'
 
+    mysqlConnectorVersion = '5.1.35'
+
+    hibernateVersion = '4.3.8.Final'
+    hibernatePersistenceVersion = '1.0.0.Final'
+    jacksonVersion = '2.5.0'
+
+    servletApiVersion = '3.1.0'
+    jstlVersion = '1.2'
 }
 
 dependencies {
-//    compile "org.springframework:spring-core:$springVersion"
-//    compile "org.springframework:spring-web:$springVersion"
+    compile "org.springframework:spring-core:$springVersion"
+    compile "org.springframework:spring-web:$springVersion"
     compile "org.springframework:spring-webmvc:$springVersion"
+    compile "org.springframework:spring-jdbc:$springVersion"
+    compile "org.springframework:spring-orm:$springVersion"
+
+    compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+    compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+
+    compile "mysql:mysql-connector-java:$mysqlConnectorVersion"
+
+    compile "org.hibernate:hibernate-core:$hibernateVersion"
+    compile "org.hibernate.javax.persistence:hibernate-jpa-2.1-api:$hibernatePersistenceVersion"
 
     compile "javax.servlet:javax.servlet-api:$servletApiVersion"
-    compile "jstl:jstl:1.2"
+    compile "jstl:jstl:$jstlVersion"
 }
