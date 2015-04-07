@@ -8,13 +8,26 @@ public class Composition {
 
     @Id
     @GeneratedValue
+    @Column(name = "composition_id")
     private Integer id;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "artist_name")
     private String artistName;
 
     @Column(name = "composition_name")
     private String compositionName;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 
     public Integer getId() {
         return id;

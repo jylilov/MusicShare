@@ -1,7 +1,7 @@
 package by.jylilov.musicshare.model;
 
 import javax.persistence.*;
-import java.util.Collection;
+import java.util.Set;
 
 @Entity
 @Table(name = "playlists")
@@ -9,21 +9,34 @@ public class Playlist {
 
     @Id
     @GeneratedValue
+    @Column(name = "playlist_id")
     private Integer id;
 
-    @Column
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(name = "playlist_name")
     private String name;
 
-    @Column(length = 2048)
+    @Column(name = "playlist_description", length = 2048)
     private String description;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "playlist_compositions",
-            joinColumns = @JoinColumn(name = "playlist_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "composition_id", referencedColumnName = "id")
+            joinColumns = @JoinColumn(name = "playlist_id"),
+            inverseJoinColumns = @JoinColumn(name = "composition_id")
     )
-    private Collection<Composition> compositions;
+    private Set<Composition> compositions;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 
     public String getDescription() {
         return description;
@@ -49,11 +62,11 @@ public class Playlist {
         this.name = name;
     }
 
-    public Collection<Composition> getCompositions() {
+    public Set<Composition> getCompositions() {
         return compositions;
     }
 
-    public void setCompositions(Collection<Composition> compositions) {
+    public void setCompositions(Set<Composition> compositions) {
         this.compositions = compositions;
     }
 }

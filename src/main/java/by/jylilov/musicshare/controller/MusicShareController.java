@@ -3,6 +3,7 @@ package by.jylilov.musicshare.controller;
 import by.jylilov.musicshare.model.Composition;
 import by.jylilov.musicshare.service.CompositionService;
 import by.jylilov.musicshare.service.PlaylistService;
+import by.jylilov.musicshare.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,10 +17,13 @@ import java.util.Collection;
 public class MusicShareController {
 
     @Autowired
-    CompositionService compositionService;
+    private CompositionService compositionService;
 
     @Autowired
-    PlaylistService playlistService;
+    private PlaylistService playlistService;
+
+    @Autowired
+    private UserService userService;
 
     @RequestMapping
     String index() {
@@ -27,14 +31,32 @@ public class MusicShareController {
     }
 
     @RequestMapping("/compositions")
-    ModelAndView composition(@RequestParam(required = false, value = "playlist_id") Integer playlistId) {
-        ModelAndView modelAndView = new ModelAndView();
-        Collection<Composition> compositions;
-        if (playlistId == null) {
-            compositions = compositionService.getAll();
-        } else {
-            compositions = playlistService.get(playlistId).getCompositions();
+    ModelAndView getCompositions(
+            @RequestParam(value = "playlist_id", required = false) Integer playlistId,
+            @RequestParam(value = "user_id", required = false) Integer userId) {
+        ModelAndView modelAndView = null;
+        if (playlistId != null && userId == null)
+            modelAndView = getCompositionsByPlaylist(playlistId);
+        else if (userId != null && playlistId == null) {
+            modelAndView = getCompositionsByUser(userId);
         }
+        return modelAndView;
+    }
+
+    ModelAndView getCompositionsByPlaylist(Integer playlistId) {
+        Collection<Composition> compositions;
+        compositions = playlistService.get(playlistId).getCompositions();
+        return getCompositions(compositions);
+    }
+
+    ModelAndView getCompositionsByUser(Integer userId) {
+        Collection<Composition> compositions;
+        compositions = userService.get(userId).getCompositions();
+        return getCompositions(compositions);
+    }
+
+    ModelAndView getCompositions(Collection<Composition> compositions) {
+        ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject("compositions", compositions);
         modelAndView.setViewName("compositions");
         return modelAndView;
