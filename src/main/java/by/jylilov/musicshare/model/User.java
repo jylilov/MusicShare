@@ -1,5 +1,7 @@
 package by.jylilov.musicshare.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import javax.persistence.*;
 import java.util.Set;
 
@@ -13,9 +15,11 @@ public class User {
     private Integer id;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    @JsonManagedReference
     private Set<Playlist> playlists;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    @JsonManagedReference
     private Set<Composition> compositions;
 
     public Integer getId() {

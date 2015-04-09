@@ -2,6 +2,8 @@ package by.jylilov.musicshare.dao.impl;
 
 import by.jylilov.musicshare.dao.PlaylistDao;
 import by.jylilov.musicshare.model.Playlist;
+import by.jylilov.musicshare.model.PlaylistComposition;
+import org.hibernate.FlushMode;
 import org.hibernate.Hibernate;
 import org.hibernate.hql.internal.ast.util.SessionFactoryHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,5 +25,25 @@ public class PlaylistDaoImpl implements PlaylistDao{
     @Override
     public Playlist get(Integer id) {
         return hibernateTemplate.get(Playlist.class, id);
+    }
+
+    @Override
+    public PlaylistComposition getPlaylistComposition(Integer id) {
+        return hibernateTemplate.get(PlaylistComposition.class, id);
+    }
+
+    @Override
+    public void updatePlaylistComposition(PlaylistComposition playlistComposition) {
+        hibernateTemplate.update(playlistComposition);
+    }
+
+    @Override
+    public void updatePlaylist(Playlist playlist) {
+        hibernateTemplate.update(playlist);
+    }
+
+    @Override
+    public void deletePlaylist(Playlist playlist) {
+        hibernateTemplate.delete(playlist);
     }
 }

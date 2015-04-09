@@ -13,6 +13,7 @@ import org.springframework.orm.hibernate4.LocalSessionFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
+import javax.transaction.TransactionManager;
 import java.util.Properties;
 
 @Configuration
@@ -43,8 +44,7 @@ public class HibernateConfig {
     }
 
     @Bean
-    public HibernateTransactionManager transactionManager(SessionFactory sessionFactory)
-    {
+    public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
         HibernateTransactionManager hibernateTransactionManager = new HibernateTransactionManager();
         hibernateTransactionManager.setSessionFactory(sessionFactory);
         return hibernateTransactionManager;
@@ -53,11 +53,10 @@ public class HibernateConfig {
     @Bean
     public HibernateTemplate hibernateTemplate(SessionFactory sessionFactory) {
         return new HibernateTemplate(sessionFactory);
-
     }
 
     @Bean
-    LocalSessionFactoryBean sessionFactory(DataSource dataSource, Properties hibernateProperties) {
+    public LocalSessionFactoryBean sessionFactory(DataSource dataSource, Properties hibernateProperties) {
         LocalSessionFactoryBean sessionFactoryBean = new LocalSessionFactoryBean();
 
         sessionFactoryBean.setDataSource(dataSource);
@@ -76,8 +75,8 @@ public class HibernateConfig {
 
         hibernateProperties.put("hibernate.dialect", dialect);
         hibernateProperties.put("hibernate.connection.charSet", charSet);
-        hibernateProperties.put("hibernate.show_sql", "true");
-        hibernateProperties.put("hibernate.format_sql", "true");
+//        hibernateProperties.put("hibernate.show_sql", "true");
+//        hibernateProperties.put("hibernate.format_sql", "true");
         hibernateProperties.put("hibernate.hbm2ddl.auto", "update");
 
         return hibernateProperties;

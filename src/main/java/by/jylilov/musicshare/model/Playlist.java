@@ -1,5 +1,8 @@
 package by.jylilov.musicshare.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import javax.persistence.*;
 import java.util.Set;
 
@@ -14,6 +17,7 @@ public class Playlist {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonBackReference
     private User user;
 
     @Column(name = "playlist_name")
@@ -22,13 +26,9 @@ public class Playlist {
     @Column(name = "playlist_description", length = 2048)
     private String description;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "playlist_compositions",
-            joinColumns = @JoinColumn(name = "playlist_id"),
-            inverseJoinColumns = @JoinColumn(name = "composition_id")
-    )
-    private Set<Composition> compositions;
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "playlist", cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private Set<PlaylistComposition> playlistCompositions;
 
     public User getUser() {
         return user;
@@ -62,11 +62,11 @@ public class Playlist {
         this.name = name;
     }
 
-    public Set<Composition> getCompositions() {
-        return compositions;
+    public Set<PlaylistComposition> getPlaylistCompositions() {
+        return playlistCompositions;
     }
 
-    public void setCompositions(Set<Composition> compositions) {
-        this.compositions = compositions;
+    public void setPlaylistCompositions(Set<PlaylistComposition> playlistCompositions) {
+        this.playlistCompositions = playlistCompositions;
     }
 }
