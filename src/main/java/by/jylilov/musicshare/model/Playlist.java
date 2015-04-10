@@ -26,7 +26,7 @@ public class Playlist {
     @Column(name = "playlist_description", length = 2048)
     private String description;
 
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "playlist", cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "playlist", cascade = CascadeType.REMOVE)
     @JsonManagedReference
     private Set<PlaylistComposition> playlistCompositions;
 

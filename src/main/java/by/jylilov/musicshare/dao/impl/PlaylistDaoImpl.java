@@ -38,6 +38,11 @@ public class PlaylistDaoImpl implements PlaylistDao{
     }
 
     @Override
+    public void createPlaylistComposition(PlaylistComposition playlistComposition) {
+        hibernateTemplate.save(playlistComposition);
+    }
+
+    @Override
     public void updatePlaylist(Playlist playlist) {
         hibernateTemplate.update(playlist);
     }
@@ -50,5 +55,10 @@ public class PlaylistDaoImpl implements PlaylistDao{
     @Override
     public void createPlaylist(Playlist playlist) {
         hibernateTemplate.save(playlist);
+    }
+
+    @Override
+    public void deletePlaylistComposition(PlaylistComposition playlistComposition) {
+        hibernateTemplate.delete(playlistComposition);
     }
 }

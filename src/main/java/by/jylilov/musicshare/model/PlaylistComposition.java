@@ -14,11 +14,11 @@ public class PlaylistComposition {
     @GeneratedValue
     private Integer id;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.DETACH)
     @JoinColumn(name = "composition_id")
     private Composition composition;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.REFRESH)
     @JoinColumn(name = "playlist_id")
     @JsonBackReference
     private Playlist playlist;

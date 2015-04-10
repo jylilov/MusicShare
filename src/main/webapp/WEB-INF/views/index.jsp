@@ -23,7 +23,7 @@
             <i class='fa fa-refresh fa-spin'></i>
         </div>
     </div>
-    <div id="playlist_dialog" class='modal fade' tabindex='-1' role='dialog' aria-labelledby='playlist_edit_dialog_label' aria-hidden='true'>
+    <div id="playlist_dialog" class='modal' tabindex='-1' role='dialog' aria-labelledby='playlist_edit_dialog_label' aria-hidden='true'>
         <div class='modal-dialog'>
             <div class='modal-content'>
                 <div class='modal-header'>

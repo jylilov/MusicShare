@@ -31,9 +31,17 @@ public class PlaylistServiceImpl implements PlaylistService {
 
     @Override
     public PlaylistComposition updatePlaylistComposition(PlaylistComposition newPlaylistComposition) {
-        PlaylistComposition playlistComposition = dao.getPlaylistComposition(newPlaylistComposition.getId());
-        playlistComposition.setCompositionOrder(newPlaylistComposition.getCompositionOrder());
-        dao.updatePlaylistComposition(playlistComposition);
+        PlaylistComposition playlistComposition;
+        Integer id = newPlaylistComposition.getId();
+        if (id != null) {
+            playlistComposition = dao.getPlaylistComposition(id);
+            playlistComposition.setCompositionOrder(newPlaylistComposition.getCompositionOrder());
+            dao.updatePlaylistComposition(playlistComposition);
+        } else {
+            playlistComposition = newPlaylistComposition;
+            dao.createPlaylistComposition(playlistComposition);
+
+        }
         return playlistComposition;
     }
 
@@ -57,5 +65,11 @@ public class PlaylistServiceImpl implements PlaylistService {
         Playlist p = dao.get(id);
         dao.deletePlaylist(p);
         return p.getUser();
+    }
+
+    @Override
+    public void deletePlaylistComposition(Integer id) {
+        PlaylistComposition playlistComposition = dao.getPlaylistComposition(id);
+        dao.deletePlaylistComposition(playlistComposition);
     }
 }

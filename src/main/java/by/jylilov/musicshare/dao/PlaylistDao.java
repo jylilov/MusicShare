@@ -10,7 +10,9 @@ public interface PlaylistDao {
     Playlist get(Integer id);
     PlaylistComposition getPlaylistComposition(Integer id);
     void updatePlaylistComposition(PlaylistComposition playlistComposition);
+    void createPlaylistComposition(PlaylistComposition playlistComposition);
     void updatePlaylist(Playlist playlist);
     void deletePlaylist(Playlist playlist);
     void createPlaylist(Playlist playlist);
+    void deletePlaylistComposition(PlaylistComposition playlistComposition);
 }

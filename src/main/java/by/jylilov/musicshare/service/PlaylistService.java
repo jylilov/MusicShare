@@ -12,4 +12,5 @@ public interface PlaylistService {
     PlaylistComposition updatePlaylistComposition(PlaylistComposition playlistComposition);
     Playlist updatePlaylist(Playlist playlist);
     User deletePlaylist(Integer id);
+    void deletePlaylistComposition(Integer id);
 }

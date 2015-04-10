@@ -61,10 +61,23 @@ public class MusicShareController {
         return playlistService.updatePlaylistComposition(playlistComposition);
     }
 
+    @RequestMapping(value = "/api/playlist_composition", method = RequestMethod.DELETE)
+    @ResponseBody
+    User deletePlaylistComposition(@RequestParam Integer id) {
+        //TODO user from SecurityContent
+        try {
+            playlistService.deletePlaylistComposition(id);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return userService.get(1);
+    }
+
     @RequestMapping(value = "/api/playlist", method = RequestMethod.POST)
     @ResponseBody
     Playlist postPlaylist(@RequestBody Playlist playlist) {
-        System.out.println("OK");
+        //TODO user from SecurityContent
+        playlist.setUser(userService.get(1));
         return playlistService.updatePlaylist(playlist);
     }
 
