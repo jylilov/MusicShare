@@ -46,4 +46,9 @@ public class PlaylistDaoImpl implements PlaylistDao{
     public void deletePlaylist(Playlist playlist) {
         hibernateTemplate.delete(playlist);
     }
+
+    @Override
+    public void createPlaylist(Playlist playlist) {
+        hibernateTemplate.save(playlist);
+    }
 }

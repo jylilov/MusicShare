@@ -23,7 +23,7 @@
             <i class='fa fa-refresh fa-spin'></i>
         </div>
     </div>
-    <div class='modal fade' id='playlist_dialog' tabindex='-1' role='dialog' aria-labelledby='playlist_edit_dialog_label' aria-hidden='true'>
+    <div id="playlist_dialog" class='modal fade' tabindex='-1' role='dialog' aria-labelledby='playlist_edit_dialog_label' aria-hidden='true'>
         <div class='modal-dialog'>
             <div class='modal-content'>
                 <div class='modal-header'>
@@ -33,16 +33,16 @@
                 <div class='modal-body'>
                     <div class='form-group'>
                         <label for='playlist_dialog_name_input'>Name</label>
-                        <input type='email' class='form-control' id='playlist_dialog_name_input' placeholder='Enter name'>
+                        <input type='text' class='form-control' id='playlist_dialog_name_input' placeholder='Enter name'>
                     </div>
                     <div class='form-group'>
                         <label for='playlist_dialog_description_textarea'>Description</label>
-                        <textarea class='form-control' id='playlist_dialog_description_textarea' rows='10' placeholder='Enter description'></textarea>
+                        <textarea class='form-control'  id='playlist_dialog_description_textarea' rows='10' placeholder='Enter description'></textarea>
                     </div>
                 </div>
                 <div class='modal-footer'>
                     <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>
-                    <button id='playlist_dialog_save_button' type='button' class='btn btn-primary'>Save</button>
+                    <button id='playlist_dialog_ok_button' type='button' class='btn btn-primary'></button>
                 </div>
             </div>
         </div>

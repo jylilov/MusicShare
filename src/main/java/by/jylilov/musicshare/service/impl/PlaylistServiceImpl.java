@@ -39,12 +39,15 @@ public class PlaylistServiceImpl implements PlaylistService {
 
     @Override
     public Playlist updatePlaylist(Playlist newPlaylist) {
-        Playlist playlist = null;
+        Playlist playlist;
         if (newPlaylist.getId() != null) {
             playlist = dao.get(newPlaylist.getId());
             playlist.setName(newPlaylist.getName());
             playlist.setDescription(newPlaylist.getDescription());
             dao.updatePlaylist(playlist);
+        } else {
+            dao.createPlaylist(newPlaylist);
+            playlist = newPlaylist;
         }
         return playlist;
     }

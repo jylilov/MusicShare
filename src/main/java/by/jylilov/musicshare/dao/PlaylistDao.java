@@ -12,4 +12,5 @@ public interface PlaylistDao {
     void updatePlaylistComposition(PlaylistComposition playlistComposition);
     void updatePlaylist(Playlist playlist);
     void deletePlaylist(Playlist playlist);
+    void createPlaylist(Playlist playlist);
 }

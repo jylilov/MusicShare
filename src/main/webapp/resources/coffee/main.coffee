@@ -1,13 +1,72 @@
-application =
-  update: ->
-    do @content.refresh
+Application =
+  refresh: ->
+    do @currentContent.refresh
 
-class Playlist
-  @update: (playlist) ->
-    $("#selected_playlist").html(TemplateUtils.createPlaylistHtml(playlist))
-    $("#selected_playlist").sortable
+Application.playlistDialog =
+  selector: "#playlist_dialog"
+  show: ->
+    $(@selector).modal 'show'
+  hide: ->
+    $(@selector).modal 'hide'
+  save: (playlist) ->
+    playlist.name = do $("#playlist_dialog_name_input").val
+    playlist.description = do $("#playlist_dialog_description_textarea").val
+    console.log playlist
+    AjaxUtils.post "/api/playlist", playlist, ->
+      do Application.refresh
+  initializeModal: (name, description, readonly, okButtonCaption, okButtonFunction) ->
+    $("#playlist_dialog_name_input").val(name).prop 'readonly', readonly
+    $("#playlist_dialog_description_textarea").val(description).prop 'readonly', readonly
+    $("#playlist_dialog_ok_button").html(okButtonCaption)
+    $("#playlist_dialog_ok_button").click(okButtonFunction)
+    do @show
+  showPlaylist: (playlist) ->
+    @initializeModal playlist.name, playlist.description, true, "OK", ->
+      do Application.playlistDialog.hide
+  editPlaylist: (playlist) ->
+    @initializeModal playlist.name, playlist.description, false, "Save", ->
+      Application.playlistDialog.save playlist
+  addPlaylist: ->
+    @initializeModal "", "", false, "Add", ->
+      newPlaylist = {}
+      Application.playlistDialog.save newPlaylist
+      do Application.playlistDialog.hide
+
+
+
+Application.userModel =
+  createMapById: (list) ->
+    map = {}
+    for item in list
+      map[item.id] = item
+    map
+  update: (@user) ->
+    @compositionMap = @createMapById @user.compositions
+    @playlistMap = @createMapById @user.playlists
+
+Application.userContent =
+  selector: "#content"
+  refresh: ->
+    AjaxUtils.get "/api/user?id=#{@userId}", (user) ->
+      Application.currentContent.update user
+      Application.currentModel.update user
+  update: (@user) ->
+    $(@selector).html TemplateHtml.userContent
+    @compositionListView.update @user.compositions
+    @playlistListView.update @user.playlists
+
+Application.userContent.compositionListView =
+  selector: "#composition_list"
+  update: (@compositionList) ->
+    $(@selector).html TemplateUtils.createCompositionListHtml @compositionList
+
+Application.userContent.playlistView =
+  selector: "#selected_playlist"
+  update: (playlist) ->
+    $(selector).html TemplateUtils.createPlaylistHtml playlist
+    $(selector).sortable
       cancel: ".btn, .dropdown-menu"
-      items: '.list-group-item'
+      items: ".list-group-item"
       stop: (event, ui) ->
         array = $("#selected_playlist").sortable("toArray")
         return if not array.length > 1
@@ -22,171 +81,122 @@ class Playlist
           a = $("\##{array[index - 1]}").data('object').compositionOrder
           b = $("\##{array[index + 1]}").data('object').compositionOrder
           compositionItem.compositionOrder = (a + b) / 2.0
-        ApiUtils.post "/api/playlist_composition", compositionItem
+        AjaxUtils.post "/api/playlist_composition", compositionItem
 
-class PlaylistList
-  @update: (playlist_list) ->
-    $("#playlists").html(TemplateUtils.createPlaylistListHtml(playlist_list))
-    $("#playlists .playlist-edit-button").click ->
-      $("#playlist_dialog").data 'object', $(this).data 'object'
-    $("#playlists .playlist-delete-button").click ->
-      object = $(this).data 'object'
-      ApiUtils.delete "/api/playlist?id=#{object.id}", ->
-        do application.update
-    $("#playlists").selectable
+Application.userContent.playlistListView =
+  selector: "#playlist_list"
+  playlistSelected: (event, ui) ->
+    $object = $ ui.selected
+    $object.addClass "active"
+    playlist = Application.userModel.playlistMap[$object.data "object-id"]
+    Application.userContent.playlistView.update playlist
+  playlistUnselected: (event, ui) ->
+    $(ui.unselected).removeClass "active"
+    $("#selected_playlist").html ""
+  makeSelectable: ->
+    $(@selector).selectable
       tolerance: "fit"
       cancel: ".btn, .dropdown-menu"
       filter: '.list-group-item'
-      selected: (event, ui) ->
-        $object = $(ui.selected)
-        $object.addClass("active")
-        Playlist.update($object.data("object"))
-      unselected: (event, ui) ->
-        $(ui.unselected).removeClass("active")
-        $("#selected_playlist").html("")
-    $("#playlist_dialog_save_button").click ->
-      object = $("#playlist_dialog").data 'object'
-      object.name = do $("#playlist_dialog_name_input").val
-      object.description = do $("#playlist_dialog_description_textarea").val
-      ApiUtils.post "/api/playlist", object, ->
-        application.update()
-    $("#playlist_add_button").click ->
-      object =
-        name: ""
-        description: ""
-
-
-class CompositionList
-  @update: (composition_list) ->
-    $("#compositions").html(TemplateUtils.createCompositionListHtml(composition_list))
-
-class UserContent
-  constructor: (@userId) ->
-    do this.refresh
-  refresh: ->
-    ApiUtils.get "/api/user?id=#{@userId}", this.update
-  update: (@user) ->
-    $("#content").html(user_content_text)
-    CompositionList.update @user.compositions
-    PlaylistList.update @user.playlists
+      selected: @playlistSelected
+      unselected: @playlistUnselected
+  initializeButtons: ->
+    $(".playlist-edit-button").click ->
+      Application.playlistDialog.editPlaylist Application.userModel.playlistMap[$(this).data 'object-id']
+    $(".playlist-show-button").click ->
+      Application.playlistDialog.showPlaylist Application.userModel.playlistMap[$(this).data 'object-id']
+    $(".playlist-add-button").click ->
+      Application.playlistDialog.addPlaylist Application.userModel.playlistMap[$(this).data 'object-id']
+    $(".playlist-delete-button").click ->
+      AjaxUtils.delete "/api/playlist?id=#{$(this).data 'object-id'}", ->
+        do Application.refresh
+  update: (@playlist_list) ->
+    $(@selector).html TemplateUtils.createPlaylistListHtml @playlist_list
+    do this.makeSelectable
+    do @initializeButtons
 
 ####################################################################################################################
+jQueryUtils =
+  getId: (selector) ->
+    $(selector).data 'object-id'
 
-class ApiUtils
-  @get: (url, callback) ->
-    $.ajax
-      type: "GET"
-      headers:
-        'Accept': 'application/json'
-      url: url
-      success: callback
-  @post: (url, data, callback) ->
-    $.ajax
-      type: "POST"
-      headers:
+
+AjaxUtils =
+  ajax: (method, url, callback, data) ->
+    jqXHR = $.ajax
+      method: method
+      header:
         'Accept': 'application/json'
         'Content-Type': 'application/json'
+#      accept: "application/json"
+#      contentType: "application/json"
+      dataType: "json"
       url: url
-      data: JSON.stringify(data)
-      success: callback
-  @delete: (url, callback) ->
-    $.ajax
-      type: "DELETE"
-      headers:
-        'Accept': 'application/json'
-        'Content-Type': 'application/json'
-      url: url
-      success: callback
+    jqXHR.done callback
+    jqXHR.fail (data, textStatus, errorThrown) ->
+      #TODO more beautiful alert
+      alert "#{method}: #{url} (#{errorThrown})"
+  get: (url, callback) ->
+    this.ajax "GET", url, callback
+  post: (url, data, callback) ->
+    this.ajax "POST", url, callback, data
+  delete: (url, callback) ->
+    this.ajax "DELETE", url, callback
 
 ####################################################################################################################
-class TemplateUtils
+TemplateUtils =
+  createForeach: (array, createFunction) ->
+    result = ""
+    for element in array
+      result += createFunction element
+    result
 
-  @createCompositionListHtml: (composition_list) ->
-    items = "";
-    for composition in composition_list
-      items += TemplateUtils.createCompositionItemHtml(composition)
-    listValueMap = {'items' : items }
-    TemplateUtils.fillTemplate(list_text, listValueMap)
+  createCompositionListHtml: (composition_list) ->
+    TemplateUtils.replaceAll TemplateHtml.compositionList,
+      'items': this.createForeach composition_list, this.createCompositionItemHtml
 
-  @createPlaylistListHtml: (playlist_list) ->
-    items = "";
-    for playlist in playlist_list
-      items += TemplateUtils.createPlaylistListItemHtml(playlist)
-    listValueMap = {'items' : items }
-    TemplateUtils.fillTemplate(list_text, listValueMap)
+  createPlaylistListHtml: (playlist_list) ->
+    TemplateUtils.replaceAll TemplateHtml.list,
+      'items': this.createForeach playlist_list, this.createPlaylistListItemHtml
 
-  @createPlaylistListItemHtml: (playlist) ->
-    playlistValueMap = {
+  createPlaylistListItemHtml: (playlist) ->
+    TemplateUtils.replaceAll TemplateHtml.playlistListItem,
       "name": playlist.name
       "id": playlist.id
-      "object": JSON.stringify(playlist)
-    }
-    TemplateUtils.fillTemplate(playlist_list_item_text, playlistValueMap)
 
-  @createPlaylistItemHtml: (playlistComposition) ->
-    valueMap = {
+  createPlaylistItemHtml: (playlistComposition) ->
+    TemplateUtils.replaceAll TemplateHtml.compositionItem,
       'type': 'playlist'
       'id': playlistComposition.id
       'object': JSON.stringify(playlistComposition)
       'name': playlistComposition.composition.compositionName
       'artist': playlistComposition.composition.artistName
-    }
-    TemplateUtils.fillTemplate(composition_item_text, valueMap)
 
-  @createCompositionItemHtml: (composition) ->
-    compositionValueMap = {
+  createCompositionItemHtml: (composition) ->
+    TemplateUtils.replaceAll TemplateHtml.compositionItem,
       'type': 'user'
       'name': composition.compositionName
       'artist': composition.artistName
       'id': composition.id
       'object': JSON.stringify(composition)
-    }
-    TemplateUtils.fillTemplate(composition_item_text, compositionValueMap)
 
-  @createPlaylistHtml: (playlist) ->
-    items = "";
-    playlistCompositions = playlist.playlistCompositions.sort (a, b) ->
+  createPlaylistHtml: (playlist) ->
+    compositionList = playlist.playlistCompositions.sort (a, b) ->
       a.compositionOrder > b.compositionOrder
-    for playlistComposition in playlistCompositions
-      items += TemplateUtils.createPlaylistItemHtml( playlistComposition)
-    listValueMap = {
+    TemplateUtils.replaceAll TemplateHtml.playlist,
       'name': playlist.name
       'description': playlist.description
-      'items': items
-    }
-    TemplateUtils.fillTemplate(playlist_text, listValueMap)
+      'items': this.createForeach compositionList this.createPlaylistItemHtml
 
-  @fillTemplate: (template, valueMap) ->
+  replaceAll: (text, templateMap) ->
+    result = text
+    for key, value of templateMap
+      result = result.replace new RegExp("{{#{key}}}", "g"), value
+    result
 
-    answer = template
-    for key, value of valueMap
-      answer = answer.replace new RegExp("{{#{key}}}", "g"), value
-    answer
+TemplateHtml = {}
 
-list_text = "
-<div class='list-group'>
-{{items}}
-</div>
-"
-
-playlist_list_item_text = "
-<div id='playlist_list_item{{id}}' class='list-group-item' data-object='{{object}}'>
-  <span class='btn-group btn-group-xs handle'>
-    <span class='btn btn-default glyphicon glyphicon-play'></span>
-  </span>
-  {{name}}
-  <div class='pull-right'>
-    <button class='btn btn-xs pull-right btn-default dropdown-toggle glyphicon glyphicon-option-vertical' type='button' id='dropdown_menu_playlist{{id}}' data-toggle='dropdown' aria-expanded='true'></button>
-    <ul class='dropdown-menu' role='menu' aria-labelledby='dropdown_menu_playlist{{id}}'>
-      <li role='presentation'><a class='playlist-edit-button' role='menuitem' tabindex='-1' data-object='{{object}}' data-toggle='modal' data-target='#playlist_dialog' href='#'>Show/Edit information</a></li>
-      <li role='presentation' class='divider'></li>
-      <li role='presentation'><a class='playlist-delete-button' role='menuitem' tabindex='-1' data-object='{{object}}' href='#'>Remove</a></li>
-    </ul>
-  </div>
-</div>
-"
-
-playlist_text = "
+TemplateHtml.playlist = "
 <div class='panel panel-default'>
   <div class='panel-heading'>{{name}}</div>
     <div class='panel-body'>
@@ -197,8 +207,47 @@ playlist_text = "
   </div>
 </div>
 "
-
-composition_item_text = "
+TemplateHtml.playlistListItem = "
+<div id='playlist_list_item{{id}}' class='list-group-item' data-object-id='{{id}}'>
+  <span class='btn-group btn-group-xs handle'>
+    <span class='btn btn-default glyphicon glyphicon-play'></span>
+  </span>
+  {{name}}
+  <div class='pull-right'>
+    <button class='btn btn-xs pull-right btn-default dropdown-toggle glyphicon glyphicon-option-vertical' type='button' id='dropdown_menu_playlist{{id}}' data-toggle='dropdown' aria-expanded='true'></button>
+    <ul class='dropdown-menu' role='menu' aria-labelledby='dropdown_menu_playlist{{id}}'>
+      <li role='presentation'><a class='playlist-show-button' role='menuitem' tabindex='-1' data-object-id='{{id}}' href='#'>Show information</a></li>
+      <li role='presentation'><a class='playlist-edit-button' role='menuitem' tabindex='-1' data-object-id='{{id}}' href='#'>Edit information</a></li>
+      <li role='presentation' class='divider'></li>
+      <li role='presentation'><a class='playlist-delete-button' role='menuitem' tabindex='-1' data-object-id='{{id}}' href='#'>Remove</a></li>
+    </ul>
+  </div>
+</div>
+"
+TemplateHtml.list = "
+<div class='list-group'>
+{{items}}
+</div>
+"
+TemplateHtml.userContent = "
+    <div class='row'>
+        <div class='col-md-6'>
+            <h3>Music Compositions</h3>
+            <div id='composition_list'>
+            </div>
+        </div>
+        <div class='col-md-6'>
+            <h3>Playlists<button type='button' class='btn btn-default playlist-add-button btn-xs glyphicon glyphicon-plus'></button></h3>
+            <div id='playlist_list'></div>
+            <div id='selected_playlist'></div>
+        </div>
+    </div>"
+TemplateHtml.compositionList = "
+<div class='list-group'>
+  {{items}}
+</div>
+"
+TemplateHtml.compositionItem = "
 <div id='{{type}}_composition_item{{id}}' data-object='{{object}}' class='list-group-item'>
   <span class='btn-group btn-group-xs'>
     <span class='btn btn-default glyphicon glyphicon-play'></span>
@@ -215,28 +264,15 @@ composition_item_text = "
   </div>
 </div>
 "
-
-user_content_text = "
-<div class='row'>
-    <div class='col-md-6'>
-        <h3>Music Compositions</h3>
-        <div id='compositions'>
-        </div>
-    </div>
-    <div class='col-md-6'>
-        <h3>Playlists<button id='playlist_add_button' type='button' class='btn btn-default btn-xs glyphicon glyphicon-plus'></button></h3>
-        <div id='playlists'></div>
-        <div id='selected_playlist'></div>
-    </div>
-</div>
-"
-
 ####################################################################################################################
 
 $ ->
-  application.content = new UserContent(1)
+  Application.userContent.userId = 1
+  Application.currentContent = Application.userContent
+  Application.currentModel = Application.userModel
+  do Application.refresh
 
-  $("#playlist_dialog").on "show.bs.modal", ->
-    playlist = $("#playlist_dialog").data "object"
-    $("#playlist_dialog_name_input").val playlist.name
-    $("#playlist_dialog_description_textarea").val playlist.description
+#  $("#playlist_dialog").on "show.bs.modal", ->
+#    playlist = $("#playlist_dialog").data "object"
+#    $("#playlist_dialog_name_input").val playlist.name
+#    $("#playlist_dialog_description_textarea").val playlist.description

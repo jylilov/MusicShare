@@ -64,6 +64,7 @@ public class MusicShareController {
     @RequestMapping(value = "/api/playlist", method = RequestMethod.POST)
     @ResponseBody
     Playlist postPlaylist(@RequestBody Playlist playlist) {
+        System.out.println("OK");
         return playlistService.updatePlaylist(playlist);
     }
 
