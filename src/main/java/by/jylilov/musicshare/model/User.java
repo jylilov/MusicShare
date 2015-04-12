@@ -11,7 +11,6 @@ public class User {
 
     @Id
     @GeneratedValue
-    @Column(name = "user_id")
     private Integer id;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)

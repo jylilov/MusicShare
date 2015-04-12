@@ -28,6 +28,7 @@ public class MusicShareController {
 
     @RequestMapping
     String index() {
+        compositionService.getAll();
         return "index";
     }
 
@@ -85,6 +86,27 @@ public class MusicShareController {
     @ResponseBody
     User deletePlaylist(@RequestParam Integer id) {
         return playlistService.deletePlaylist(id);
+    }
+
+    @RequestMapping(value = "/api/composition", method = RequestMethod.DELETE)
+    @ResponseBody
+    User deleteComposition(@RequestParam Integer id) {
+        compositionService.deleteComposition(id);
+        return userService.get(1);
+    }
+
+    @RequestMapping(value = "/api/composition", method = RequestMethod.POST)
+    @ResponseBody
+    User postComposition(@RequestBody Composition composition) {
+        try {
+            User user = userService.get(1);
+            composition.setUser(user);
+            compositionService.updateComposition(composition);
+            return user;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw  e;
+        }
     }
 
 }

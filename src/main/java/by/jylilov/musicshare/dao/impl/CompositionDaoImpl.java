@@ -23,4 +23,19 @@ public class CompositionDaoImpl implements CompositionDao {
     public Collection<Composition> getAll() {
         return hibernateTemplate.loadAll(Composition.class);
     }
+
+    @Override
+    public void updateComposition(Composition composition) {
+        try {
+            hibernateTemplate.saveOrUpdate(composition);
+        }catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @Override
+    public void deleteComposition(Integer id) {
+        hibernateTemplate.delete(get(id));
+    }
 }

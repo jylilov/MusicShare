@@ -1,8 +1,84 @@
 Application =
   init: ->
     do Application.playlistDialog.init
+    do Application.compositionDialog.init
   refresh: ->
     do @currentContent.refresh
+
+Application.compositionDialog =
+  selector: "#composition_dialog"
+  tagSelector: "#composition_dialog_tag_list"
+  genreSelector: "#composition_dialog_genre_list"
+  genres: ["Rock", "Pop", "Rap & Hip-Hop", "House & Dance",
+           "Alternative", "Instrumental", "Easy Listening",
+           "Metal", "Dubstep & Trap", "Indie pop", "Jazz & Blues",
+           "Drum & Bass", "Trance", "Ethnic", "Acoustic & Vocal",
+           "Reggae", "Classical", "Electropop & Disco"]
+  init: ->
+    $("#composition_dialog_ok_button").click ->
+      do Application.compositionDialog.okButtonHandler
+  show: ->
+    $(@selector).modal 'show'
+  hide: ->
+    $(@selector).modal 'hide'
+  save: (composition) ->
+    composition.artistName = do $("#composition_dialog_artist_name_input").val
+    composition.compositionName = do $("#composition_dialog_composition_name_input").val
+    composition.link = do $("#composition_dialog_link_input").val
+    composition.genreList = do $("#composition_dialog_genre_list .tags-content").tags().getTags
+    composition.tagList = do $("#composition_dialog_tag_list .tags-content").tags().getTags
+    AjaxUtils.post "/api/composition", composition, ->
+      do Application.refresh
+  updateTextInputs: (composition, readOnly) ->
+    $("#composition_dialog_artist_name_input").val(composition.artistName).prop 'readonly', readOnly
+    $("#composition_dialog_composition_name_input").val(composition.compositionName).prop 'readonly', readOnly
+    $("#composition_dialog_link_input").val(composition.link).prop 'readonly', readOnly
+  updateTagsInputs: (composition, readOnly) ->
+    $(@tagSelector).html "<div class='tags-content'></div>"
+    $(@genreSelector).html "<div class='tags-content'></div>"
+    $("#composition_dialog_tag_list .tags-content").tags
+      promptText: "Enter tags"
+      readOnlyEmptyMessage: "No tags"
+      caseInsensitive: true
+      readOnly: readOnly
+      tagData: composition.tagList
+    $("#composition_dialog_genre_list .tags-content").tags
+      promptText: "Enter genres"
+      readOnlyEmptyMessage: "No genres"
+      caseInsensitive: true
+      readOnly: readOnly
+      suggestions: @genres
+      restrictTo: @genres
+      tagData: composition.genreList
+  updateInputsAndShow: (composition, readOnly) ->
+    @updateTextInputs composition, readOnly
+    do @show
+    @updateTagsInputs composition, readOnly
+  updateDialog: (composition, readOnly, okButtonCaption, okButtonFunction) ->
+    @updateInputsAndShow composition, readOnly
+    $("#composition_dialog_ok_button").html okButtonCaption
+    @okButtonHandler = okButtonFunction
+  showComposition: (composition) ->
+    @updateDialog composition, true, "OK",  ->
+      do Application.compositionDialog.hide
+  editComposition: (composition) ->
+    @updateDialog composition, false, "Save", ->
+      Application.compositionDialog.save composition
+  cloneComposition: (composition) ->
+    composition.id = null
+    @updateDialog composition, false, "Add", ->
+      Application.compositionDialog.save composition
+      do Application.compositionDialog.hide
+  createComposition: ->
+    composition =
+      artistName: ""
+      compositionName: ""
+      genreList: []
+      tagList: []
+      link: ""
+    @updateDialog composition, false, "Add", ->
+      Application.compositionDialog.save composition
+      do Application.compositionDialog.hide
 
 Application.playlistDialog =
   selector: "#playlist_dialog"
@@ -61,11 +137,26 @@ Application.userContent =
     $(@selector).html TemplateHtml.userContent
     @compositionListView.update @user.compositions
     @playlistListView.update @user.playlists
+  updateCompositionViews: ->
+    $(".composition-show-button").click ->
+      composition = Application.userModel.compositionMap[$(this).data 'object-id']
+      Application.compositionDialog.showComposition composition
+    $(".composition-edit-button").click ->
+      composition = Application.userModel.compositionMap[$(this).data 'object-id']
+      Application.compositionDialog.editComposition composition
+    $(".composition-clone-button").click ->
+      composition = Application.userModel.compositionMap[$(this).data 'object-id']
+      Application.compositionDialog.cloneComposition composition
 
 Application.userContent.compositionListView =
   selector: "#composition_list"
-  update: (@compositionList) ->
-    $(@selector).html TemplateUtils.createCompositionListHtml @compositionList
+  initializeButtons: ->
+    $(".composition-add-button").click ->
+      do Application.compositionDialog.createComposition
+    $("#composition_list .composition-delete-button").click ->
+      AjaxUtils.delete "/api/composition?id=#{$(this).data 'object-id'}", ->
+        do Application.refresh
+  makeDraggable: ->
     $("#composition_list .list-group-item").draggable
       cancel: ".btn, .dropdown-menu"
       helper: 'clone'
@@ -73,7 +164,11 @@ Application.userContent.compositionListView =
       drag: (event, ui) ->
         ui.position.left = event.pageX - ui.helper.width() / 2.0
         ui.position.top = event.pageY - ui.helper.height() / 2.0
-
+  update: (@compositionList) ->
+    $(@selector).html TemplateUtils.createCompositionListHtml @compositionList
+    do Application.userContent.updateCompositionViews
+    do @initializeButtons
+    do @makeDraggable
 
 Application.userContent.playlistView =
   selector: "#selected_playlist"
@@ -126,6 +221,7 @@ Application.userContent.playlistView =
     do @makeSortable
     do @makeDroppable
     do @initializeButtons
+    do Application.userContent.updateCompositionViews
 
 Application.userContent.playlistListView =
   selector: "#playlist_list"
@@ -185,6 +281,7 @@ AjaxUtils =
   get: (url, callback) ->
     this.ajax "GET", url, callback
   post: (url, data, callback) ->
+    console.log data
     this.ajax "POST", url, callback, data
   delete: (url, callback) ->
     this.ajax "DELETE", url, callback
@@ -282,7 +379,7 @@ TemplateHtml.list = "
 TemplateHtml.userContent = "
     <div class='row'>
         <div class='col-md-6'>
-            <h3>Music Compositions</h3>
+            <h3>Music Compositions<button type='button' class='btn btn-default composition-add-button btn-xs glyphicon glyphicon-plus'></button></h3>
             <div id='composition_list'>
             </div>
         </div>
@@ -306,8 +403,10 @@ TemplateHtml.compositionItem = "
   <div class='pull-right'>
     <button class='btn btn-xs pull-right btn-default dropdown-toggle glyphicon glyphicon-option-vertical' type='button' id='{{type}}{{id}}dropdown_menu_composition{{id-content}}' data-toggle='dropdown' aria-expanded='true'></button>
     <ul class='dropdown-menu' role='menu' aria-labelledby='{{type}}{{id}}dropdown_menu_composition{{id-content}}'>
-      <li role='presentation'><a data-object-id='{{id}}' class='composition-edit-button' role='menuitem' tabindex='-1' href='#'>Show information</a></li>
-      <li role='presentation'><a data-object-id='{{id}}' class='composition-edit-button' role='menuitem' tabindex='-1' href='#'>Edit information</a></li>
+      <li role='presentation'><a data-object-id='{{id-content}}' class='composition-show-button' role='menuitem' tabindex='-1' href='#'>Show information</a></li>
+      <li role='presentation'><a data-object-id='{{id-content}}' class='composition-edit-button' role='menuitem' tabindex='-1' href='#'>Edit information</a></li>
+      <li role='presentation' class='divider'></li>
+      <li role='presentation'><a data-object-id='{{id-content}}' class='composition-clone-button' role='menuitem' tabindex='-1' href='#'>Clone</a></li>
       <li role='presentation' class='divider'></li>
       <li role='presentation'><a data-object-id='{{id}}' class='composition-delete-button' role='menuitem' tabindex='-1' href='#'>Remove</a></li>
     </ul>

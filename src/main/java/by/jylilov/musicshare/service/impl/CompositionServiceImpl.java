@@ -3,6 +3,7 @@ package by.jylilov.musicshare.service.impl;
 
 import by.jylilov.musicshare.dao.CompositionDao;
 import by.jylilov.musicshare.model.Composition;
+import by.jylilov.musicshare.model.User;
 import by.jylilov.musicshare.service.CompositionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,5 +26,15 @@ public class CompositionServiceImpl implements CompositionService {
     @Override
     public Collection<Composition> getAll() {
         return dao.getAll();
+    }
+
+    @Override
+    public void updateComposition(Composition composition) {
+        dao.updateComposition(composition);
+    }
+
+    @Override
+    public void deleteComposition(Integer id) {
+        dao.deleteComposition(id);
     }
 }

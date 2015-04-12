@@ -12,18 +12,17 @@ public class Playlist {
 
     @Id
     @GeneratedValue
-    @Column(name = "playlist_id")
     private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
     @JsonBackReference
     private User user;
 
-    @Column(name = "playlist_name")
+    @Column(name = "name")
     private String name;
 
-    @Column(name = "playlist_description", length = 2048)
+    @Column(name = "description", length = 2048)
     private String description;
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "playlist", cascade = CascadeType.REMOVE)
