@@ -2,8 +2,41 @@ Application =
   init: ->
     do Application.playlistDialog.init
     do Application.compositionDialog.init
+    do Application.player.init
   refresh: ->
     do @currentContent.refresh
+
+Application.player =
+  init: ->
+    @player = document.getElementById "player"
+    do $("#player_view").draggable
+    $("#player_play_button").click ->
+      return if not Application.player.playingComposition?
+      if Application.player.isPlaying(Application.player.playingComposition)
+        do Application.player.pause
+      else
+        Application.player.play Application.player.playingComposition
+    @player.onplay = ->
+      $("#player_view .glyphicon").removeClass("glyphicon-play").addClass("glyphicon-pause")
+      $("#player_title").html "#{Application.player.playingComposition.artistName} - #{Application.player.playingComposition.compositionName}"
+    @player.onpause = ->
+      $("#player_view .glyphicon").removeClass("glyphicon-pause").addClass("glyphicon-play")
+  isPlaying: (composition) ->
+    not @player.paused && @playingComposition? && @playingComposition.id == composition.id
+  pause: ->
+    do @player.pause
+    $(".composition#{@playingComposition.id}").removeClass("glyphicon-pause").addClass("glyphicon-play")
+  play: (composition) ->
+    if @playingComposition?
+      $(".composition#{@playingComposition.id}").removeClass("glyphicon-pause").addClass("glyphicon-play")
+    $(".composition#{composition.id}").removeClass("glyphicon-play").addClass("glyphicon-pause")
+    if not @playingComposition? || composition.id != @playingComposition.id
+      @playingComposition = composition
+      @player.src = @playingComposition.link
+      do @player.load
+      do @player.play
+    else
+      do @player.play
 
 Application.compositionDialog =
   selector: "#composition_dialog"
@@ -137,16 +170,22 @@ Application.userContent =
     $(@selector).html TemplateHtml.userContent
     @compositionListView.update @user.compositions
     @playlistListView.update @user.playlists
-  updateCompositionViews: ->
-    $(".composition-show-button").click ->
+  initializeCompositionViewButtons: (parent) ->
+    $(parent).find(".composition-show-button").click ->
       composition = Application.userModel.compositionMap[$(this).data 'object-id']
       Application.compositionDialog.showComposition composition
-    $(".composition-edit-button").click ->
+    $(parent).find(".composition-edit-button").click ->
       composition = Application.userModel.compositionMap[$(this).data 'object-id']
       Application.compositionDialog.editComposition composition
-    $(".composition-clone-button").click ->
+    $(parent).find(".composition-clone-button").click ->
       composition = Application.userModel.compositionMap[$(this).data 'object-id']
       Application.compositionDialog.cloneComposition composition
+    $(parent).find(".composition-play-button").click ->
+      composition = Application.userModel.compositionMap[$(this).data 'object-id']
+      if Application.player.isPlaying composition
+        do Application.player.pause
+      else
+        Application.player.play composition
 
 Application.userContent.compositionListView =
   selector: "#composition_list"
@@ -156,7 +195,7 @@ Application.userContent.compositionListView =
     $("#composition_list .composition-delete-button").click ->
       AjaxUtils.delete "/api/composition?id=#{$(this).data 'object-id'}", ->
         do Application.refresh
-  makeDraggable: ->
+  initializeDraggable: ->
     $("#composition_list .list-group-item").draggable
       cancel: ".btn, .dropdown-menu"
       helper: 'clone'
@@ -166,9 +205,9 @@ Application.userContent.compositionListView =
         ui.position.top = event.pageY - ui.helper.height() / 2.0
   update: (@compositionList) ->
     $(@selector).html TemplateUtils.createCompositionListHtml @compositionList
-    do Application.userContent.updateCompositionViews
+    Application.userContent.initializeCompositionViewButtons @selector
     do @initializeButtons
-    do @makeDraggable
+    do @initializeDraggable
 
 Application.userContent.playlistView =
   selector: "#selected_playlist"
@@ -218,10 +257,10 @@ Application.userContent.playlistView =
     playlist = Application.userModel.playlistMap[@playlistId];
     return if not playlist?
     $(@selector).html TemplateUtils.createPlaylistHtml playlist
+    Application.userContent.initializeCompositionViewButtons @selector
     do @makeSortable
     do @makeDroppable
     do @initializeButtons
-    do Application.userContent.updateCompositionViews
 
 Application.userContent.playlistListView =
   selector: "#playlist_list"
@@ -234,6 +273,7 @@ Application.userContent.playlistListView =
   playlistUnselected: (event, ui) ->
     $(ui.unselected).removeClass "active"
     $("#selected_playlist").html ""
+    Application.userContent.playlistListView.selectedItemId = null
   makeSelectable: ->
     $(@selector).selectable
       tolerance: "fit"
@@ -281,7 +321,6 @@ AjaxUtils =
   get: (url, callback) ->
     this.ajax "GET", url, callback
   post: (url, data, callback) ->
-    console.log data
     this.ajax "POST", url, callback, data
   delete: (url, callback) ->
     this.ajax "DELETE", url, callback
@@ -310,6 +349,9 @@ TemplateUtils =
       "name": playlist.name
       "id": playlist.id
 
+  getGlyph: (composition) ->
+    if Application.player.isPlaying(composition) then 'pause' else 'play'
+
   createPlaylistItemHtml: (playlistComposition) ->
     TemplateUtils.replaceAll TemplateHtml.compositionItem,
       'type': 'playlist'
@@ -317,6 +359,7 @@ TemplateUtils =
       'id-content': playlistComposition.composition.id
       'name': playlistComposition.composition.compositionName
       'artist': playlistComposition.composition.artistName
+      'glyph': TemplateUtils.getGlyph playlistComposition.composition
 
   createCompositionItemHtml: (composition) ->
     TemplateUtils.replaceAll TemplateHtml.compositionItem,
@@ -325,6 +368,7 @@ TemplateUtils =
       'id-content': composition.id
       'name': composition.compositionName
       'artist': composition.artistName
+      'glyph': TemplateUtils.getGlyph composition
 
   createPlaylistHtml: (playlist) ->
     compositionList = playlist.playlistCompositions.sort (a, b) ->
@@ -356,9 +400,9 @@ TemplateHtml.playlist = "
 "
 TemplateHtml.playlistListItem = "
 <div id='playlist_list_item{{id}}' class='list-group-item' data-object-id='{{id}}'>
-  <span class='btn-group btn-group-xs handle'>
+  <!--<span class='btn-group btn-group-xs handle'>
     <span class='btn btn-default glyphicon glyphicon-play'></span>
-  </span>
+  </span>-->
   {{name}}
   <div class='pull-right'>
     <button class='btn btn-xs pull-right btn-default dropdown-toggle glyphicon glyphicon-option-vertical' type='button' id='dropdown_menu_playlist{{id}}' data-toggle='dropdown' aria-expanded='true'></button>
@@ -397,7 +441,7 @@ TemplateHtml.compositionList = "
 TemplateHtml.compositionItem = "
 <div id='{{type}}{{id}}_composition_item{{id-content}}' data-object-id='{{id}}' class='list-group-item {{type}}-composition-item'>
   <span class='btn-group btn-group-xs'>
-    <span class='btn btn-default glyphicon glyphicon-play'></span>
+    <span class='btn btn-default glyphicon glyphicon-{{glyph}} composition-play-button composition{{id-content}}' data-object-id='{{id-content}}'></span>
   </span>
   {{artist}} - {{name}}
   <div class='pull-right'>
@@ -421,3 +465,4 @@ $ ->
   Application.currentContent = Application.userContent
   Application.currentModel = Application.userModel
   do Application.refresh
+

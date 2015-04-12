@@ -13,6 +13,14 @@
     <script type="text/coffeescript" src="<sf:url value="/resources/coffee/main.coffee"/>"></script>
 </head>
 <body>
+    <audio id="player">
+    </audio>
+    <div id="player_view" class="input-group" style="width: 20%; position: absolute; z-index: 1">
+        <span class="input-group-btn">
+            <button id="player_play_button" class="btn btn-default" type="button"><span class="glyphicon glyphicon-play"></span></button>
+        </span>
+        <span id="player_title" class="input-group-addon" style="width: 100%"></span>
+    </div>
     <div class="col-md-8 col-md-offset-2">
         <nav id="title" class="navbar navbar-default">
             <div class="container-fluid">
